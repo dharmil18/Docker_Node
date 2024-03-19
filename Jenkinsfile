@@ -1,46 +1,38 @@
-pipeline{
-    
+pipeline {
     agent any
 
-	environment {
-		DOCKERHUB_CREDENTIALS=credentials('dockerhub')
-	}
+    environment {
+        DOCKER_IMAGE_NAME = 'dharmil18/c0884179-node-express-app' // Docker Hub image name
+        DOCKER_IMAGE_TAG = 'latest' // Image tag
+        GITHUB_REPO_URL = 'https://github.com/dharmil18/Docker_Node.git' // GitHub repository URL
+        DOCKERHUB_CREDENTIALS = 'dockerhub' // Jenkins credentials ID for Docker Hub
+    }
 
-	stages {
-	    
-	    stage('gitclone') {
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: "${GITHUB_REPO_URL}"
+            }
+        }
 
-			steps {
-				git 'https://github.com/dharmil18/Docker_Node.git'
-			}
-		}
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}", "./")
+                }
+            }
+        }
 
-		stage('Build') {
-
-			steps {
-				sh 'docker build -t dharmil18/c0884179-docker-node-app:latest .'
-			}
-		}
-
-		stage('Login') {
-
-			steps {
-				sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-			}
-		}
-
-		stage('Push') {
-
-			steps {
-				sh 'docker push dharmil18/c0884179-docker-node-app:latest'
-			}
-		}
-	}
-
-	post {
-		always {
-			sh 'docker logout'
-		}
-	}
-
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        docker.withRegistry('https://index.docker.io/v1/', 'dockerhub_credentials') {
+                            docker.image("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}").push()
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
