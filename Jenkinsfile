@@ -21,7 +21,7 @@ pipeline {
       steps {
         script {
           try {
-            docker.withRegistry('https://index.docker.io/v1/', registryCredential) {
+            docker.withRegistry('https://registry-1.docker.io/v2/', registryCredential) {
               dockerImage.push("$BUILD_NUMBER")
               dockerImage.push('latest')
             }
